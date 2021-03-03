@@ -1,25 +1,34 @@
 # All the targets have been tested on ubuntu system
 #-------------------------------------------------------------------------------------------
 # VARIABLES
-
-APP ?= bk-config
-
 #-------------------------------------------------------------------------------------------
-
-# HELP on commands
+APP ?= bk-config
+.DEFAULT_GOAL = help
+TIMEOUT ?= 30
+#---------------------------------------------------------------------------------------
+# INFORMATION RELATED COMMANDS
+#---------------------------------------------------------------------------------------
 
 help:
-#    "${MAKEFLAGS} "
 	@echo "Available targets"
+
+info:
+	@echo "APP: $(APP)"
 
 #---------------------------------------------------------------------------------------
 # Go repo specific target
 #---------------------------------------------------------------------------------------
 
+clean:
+	@rm -rf out
+
 #build go package 
-build: 
-	@echo "Building ${APP}"
-	@go build -o ./bin/$(APP) main.go
+build: info
+	@go build ./... 
+
+#buiding an excutable
+build-exec: info
+	@go build -o ./out ./... 
 
 #run go application
 run:
@@ -27,7 +36,6 @@ run:
 	@go run main.go
 
 
-test:
-	@echo "BuildiRunning Tests for ${APP}"
-	@go test --timeout 30s
+test: info
+	@go test --timeout $(TIMEOUT)s ./... -v
 
