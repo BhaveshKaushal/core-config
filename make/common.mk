@@ -39,3 +39,6 @@ run:
 test: info
 	@go test --timeout $(TIMEOUT)s ./... -v
 
+ports:
+	@minikube service list	
+

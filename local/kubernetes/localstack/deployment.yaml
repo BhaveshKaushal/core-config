@@ -1,0 +1,80 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: localstack-pv-volume
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 8Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/data/localstack"    
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: localstack-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack
+spec:
+  type: NodePort
+  ports:
+  - port: 30500
+    protocol: TCP
+    name: ui
+    nodePort: 30500
+  - port: 30501
+    protocol: TCP
+    name: secretsmanager
+    nodePort: 30501
+  - port: 30502
+    protocol: TCP
+    name: cloudformation
+    nodePort: 30502
+  # add other required aws services similarly
+  #- port: 30503
+  #  protocol: TCP
+  #  name: s3
+  #  nodePort: 30503  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+spec:
+  replicas: 1
+  template:
+    spec:
+      volumes:
+        - name: localstack-pv-storage
+          persistentVolumeClaim:
+            claimName: localstack-pv-claim
+      containers:
+      - name: localstack
+        image: localstack/localstack:0.12.7
+        ports:
+        - containerPort: 30500 # localstack ui
+        - containerPort: 30501 # secretsmanager            
+        - containerPort: 30502 # cloudformation
+        env:
+          - name: services
+            value: "secretsmanager:30501,cloudformation:30502"
+          - name: PORT_WEB_UI
+            value: "30500"
+          - name: DATA_DIR
+            value: /tmp/localstack/data
+        volumeMounts:
+          - mountPath: "/tmp/localstack/data"
+            name: localstack-pv-storage         
