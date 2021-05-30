@@ -43,6 +43,10 @@ spec:
     protocol: TCP
     name: cloudformation
     nodePort: 30502
+  - port: 30503
+    protocol: TCP
+    name: dynamodb
+    nodePort: 30503  
   # add other required aws services similarly
   #- port: 30503
   #  protocol: TCP
@@ -68,9 +72,10 @@ spec:
         - containerPort: 30500 # localstack ui
         - containerPort: 30501 # secretsmanager            
         - containerPort: 30502 # cloudformation
+        - containerPort: 30503 #Dynamo DB
         env:
-          - name: services
-            value: "secretsmanager:30501,cloudformation:30502"
+          - name: SERVICES
+            value: "secretsmanager:30501,cloudformation:30502,dynamodb:30503"
           - name: PORT_WEB_UI
             value: "30500"
           - name: DATA_DIR
