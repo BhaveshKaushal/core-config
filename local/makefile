@@ -16,6 +16,7 @@ info:
 	@echo "	install-kvm 			installs kvm"
 	@echo "	install-minikube 		installs minikube"
 	@echo "	deploy-localstack		deploys localstack inside minikube"
+	@echo "	deploy-redis		  	deploys redis inside minikube"
 
 #=========================================================================================== 
 #KVM and minikube
@@ -47,3 +48,10 @@ ip:
 
 deploy-localstack:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
+
+#===========================================================================================
+# Deploy: redis
+#===========================================================================================	
+
+deploy-redis:
+	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/redis
