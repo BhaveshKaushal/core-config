@@ -13,6 +13,17 @@ miniIP              := $(shell minikube ip)
 
 help:
 	@echo "Available targets"
+	@echo " info 			 	Information about the Application"
+	@echo " redis			 	Run redis client for redis deployed in minikube"
+	@echo " ddb-Admin		 	Run dynamodb for dynamodb deployed in minikube"
+	@echo " secrets-list			List available secrets in deployed secretsmanager"
+	@echo " clean				Remove out folder"
+	@echo " build			 	build go package"
+	@echo " build-exec		 	buiding an excutable"
+	@echo " test				Run tests"
+	@echo " test-cover		 	Run tests with coverage"
+	@echo " ports			 	List of deployed service in minikube"
+
 
 info:
 	@echo "APP: $(APP)"
@@ -27,6 +38,33 @@ redis:
 
 
 .PHONY: redis
+
+#---------------------------------------------------------------------------------------
+# DDB Admin
+# Prerequisite: Install Dynamodb admin and deploy local stack
+#---------------------------------------------------------------------------------------
+
+ddb:
+
+	@eval $$(minikube service list -n localstack | grep dynamodb | sed 's/^.*http:\/\/\([^:]*\):\([0-9]*\).*/DYNAMO_ENDPOINT=\1:\2 dynamodb-admin/')
+
+
+.PHONY: ddb
+
+
+#---------------------------------------------------------------------------------------
+# Se
+# Prerequisite: 
+# 1. Create aws profile named 'localstack' with dummy values for key and secret key.
+# 2. Deploy local stack
+#---------------------------------------------------------------------------------------
+
+secrets-list:
+
+	@eval $$(minikube service list -n localstack | grep secretsmanager | sed 's/^.*http:\/\/\([^:]*\):\([0-9]*\).*/aws secretsmanager list-secrets --profile localstack --endpoint-url http:\/\/\1:\2/')
+
+
+.PHONY: secrets-list
 
 #---------------------------------------------------------------------------------------
 # Go repo specific target
@@ -51,6 +89,9 @@ run:
 
 test: info
 	@go test --timeout $(TIMEOUT)s ./... -v
+
+test-cover: info
+	@go test --timeout $(TIMEOUT)s --cover ./... -v
 
 ports:
 	@minikube service list

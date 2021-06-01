@@ -31,22 +31,22 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 30500
+  - port: 30100
     protocol: TCP
     name: ui
-    nodePort: 30500
-  - port: 30501
+    nodePort: 30100
+  - port: 30110
     protocol: TCP
     name: secretsmanager
-    nodePort: 30501
-  - port: 30502
+    nodePort: 30110
+  - port: 30120
     protocol: TCP
     name: cloudformation
-    nodePort: 30502
-  - port: 30503
+    nodePort: 30120
+  - port: 30130
     protocol: TCP
     name: dynamodb
-    nodePort: 30503  
+    nodePort: 30130  
   # add other required aws services similarly
   #- port: 30503
   #  protocol: TCP
@@ -67,17 +67,17 @@ spec:
             claimName: localstack-pv-claim
       containers:
       - name: localstack
-        image: localstack/localstack:0.12.7
+        image: localstack/localstack:0.10.5
         ports:
-        - containerPort: 30500 # localstack ui
-        - containerPort: 30501 # secretsmanager            
-        - containerPort: 30502 # cloudformation
-        - containerPort: 30503 #Dynamo DB
+        - containerPort: 30100 # localstack ui
+        - containerPort: 30110 # secretsmanager            
+        - containerPort: 30120 # cloudformation
+        - containerPort: 30130 #Dynamo DB
         env:
           - name: SERVICES
-            value: "secretsmanager:30501,cloudformation:30502,dynamodb:30503"
+            value: "secretsmanager:30110,cloudformation:30120,dynamodb:30130"
           - name: PORT_WEB_UI
-            value: "30500"
+            value: "30100"
           - name: DATA_DIR
             value: /tmp/localstack/data
         volumeMounts:
