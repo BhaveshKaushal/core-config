@@ -1,17 +1,4 @@
 ---
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: postgres-pv-volume
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 8Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: "/data/postgres"    
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -22,7 +9,7 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 7Gi
+      storage: 4Gi
 ---
 apiVersion: v1
 kind: Service
@@ -44,17 +31,19 @@ spec:
   template:
     spec:
       volumes:
-        - name: postgres-pv-storage
+        - name: db-pv-storage
           persistentVolumeClaim:
             claimName: postgres-pv-claim
       containers:
       - name: postgres
-        image: mdillon/postgis
+        image: postgis/postgis:12-master
         ports:
         - containerPort: 5432 
         env:
           - name: DATA_DIR
             value: /tmp/postgres/data
+          - name: POSTGRES_PASSWORD
+            value: mysecretpassword  
         volumeMounts:
           - mountPath: "/tmp/postgres/data"
-            name: postgres-pv-storage         
+            name: db-pv-storage         

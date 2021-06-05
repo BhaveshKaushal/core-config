@@ -55,3 +55,18 @@ deploy-localstack:
 
 deploy-redis:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/redis
+
+
+#===========================================================================================
+# Deploy: persistent volume
+#===========================================================================================	
+
+deploy-pv:
+	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/pv
+
+#===========================================================================================
+# Deploy: postgres
+#===========================================================================================	
+
+deploy-postgres:
+	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/postgres

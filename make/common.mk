@@ -7,6 +7,7 @@ APP ?= bk-config
 TIMEOUT ?= 30
 IP					:= $(shell ip addr | grep 'inet ' | grep -v 127.0.0.1 | head -1 | cut -d' ' -f6 | cut -d'/' -f1)
 miniIP              := $(shell minikube ip)
+POST_USER ?= postgres
 #---------------------------------------------------------------------------------------
 # INFORMATION RELATED COMMANDS
 #---------------------------------------------------------------------------------------
@@ -52,8 +53,8 @@ ddb:
 .PHONY: ddb
 
 
-#---------------------------------------------------------------------------------------
-# Se
+#--------------------------------------------------------------------------------------
+# secrets-manager
 # Prerequisite: 
 # 1. Create aws profile named 'localstack' with dummy values for key and secret key.
 # 2. Deploy local stack
@@ -65,6 +66,19 @@ secrets-list:
 
 
 .PHONY: secrets-list
+
+#---------------------------------------------------------------------------------------
+# Postgres
+# Prerequisite: 
+# 1. install psql
+#---------------------------------------------------------------------------------------
+
+postgres:
+
+	@eval $$(minikube service list -n database | grep postgres | sed 's/^.*http:\/\/\([^:]*\):\([0-9]*\).*/psql -h \1 -p \2 -U $(POST_USER)/')
+
+
+.PHONY: postgres
 
 #---------------------------------------------------------------------------------------
 # Go repo specific target
