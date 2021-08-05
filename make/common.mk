@@ -5,6 +5,7 @@
 APP ?= bk-config
 .DEFAULT_GOAL = help
 TIMEOUT ?= 30
+DIR ?= ./...
 IP					:= $(shell ip addr | grep 'inet ' | grep -v 127.0.0.1 | head -1 | cut -d' ' -f6 | cut -d'/' -f1)
 miniIP              := $(shell minikube ip)
 POST_USER ?= postgres
@@ -28,6 +29,8 @@ help:
 
 info:
 	@echo "APP: $(APP)"
+	@echo "TIMEOUT: $(TIMEOUT)"
+	@echo "DIR: $(DIR)"
 
 #---------------------------------------------------------------------------------------
 # REDIS
@@ -102,10 +105,10 @@ run:
 
 
 test: info
-	@go test --timeout $(TIMEOUT)s ./... -v
+	@go test --timeout $(TIMEOUT)s $(DIR) -v
 
 test-cover: info
-	@go test --timeout $(TIMEOUT)s --cover ./... -v
+	@go test --timeout $(TIMEOUT)s --cover $(DIR) -v
 
 ports:
 	@minikube service list
