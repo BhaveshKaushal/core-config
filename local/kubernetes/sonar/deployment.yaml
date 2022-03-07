@@ -1,0 +1,93 @@
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: sonarqube-pv-volume
+  namespace: sonarqube
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/data/sonarqube"  
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sonarqube-data-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sonarqube-extensions-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube
+spec:
+  type: NodePort
+  ports:
+  - port: 5432
+    targetPort: 5432
+    nodePort: 31210 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+spec:
+  replicas: 1
+  template:
+    spec:
+      volumes:
+        - name: sonarqube-data-pv-storage
+          persistentVolumeClaim:
+            claimName: sonarqube-data-pv-claim
+        - name: sonarqube-extensions-pv-storage
+          persistentVolumeClaim:
+            claimName: sonarqube-extensions-pv-claim
+      containers:
+      - name: sonarqube
+        image: sonarqube:7.1
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+          limits:
+            cpu: 2000m
+            memory: 2048Mi
+        volumeMounts:
+          - mountPath: "/tmp/sonarqube/data"
+            name: sonarqube-data-pv-storage
+          - mountPath: "/tmp/sonarqube/extensions"
+            name: sonarqube-extensions-pv-storage
+        env:
+        - name: "SONARQUBE_JDBC_USERNAME"
+          value: "sonaruser"
+        - name: "SONARQUBE_JDBC_URL"
+          value: "jdbc:postgresql://localhost/sonar"
+        - name: "SONARQUBE_JDBC_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        ports:
+        - containerPort: 9000
+          protocol: TCP          

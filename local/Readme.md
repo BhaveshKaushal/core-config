@@ -10,3 +10,4 @@
 | dynamodb          | 30130         |
 | redis             | 31100         |
 | postgres          | 31200         |
+| sonar             | 31210         |

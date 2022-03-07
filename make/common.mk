@@ -67,6 +67,9 @@ secrets-list:
 
 	@eval $$(minikube service list -n localstack | grep secretsmanager | sed 's/^.*http:\/\/\([^:]*\):\([0-9]*\).*/aws secretsmanager list-secrets --profile localstack --endpoint-url http:\/\/\1:\2/')
 
+create-secret:
+
+	@eval $$(minikube service list -n localstack | grep secretsmanager | sed 's/^.*http:\/\/\([^:]*\):\([0-9]*\).*/aws secretsmanager list-secrets --profile localstack --endpoint-url http:\/\/\1:\2/')
 
 .PHONY: secrets-list
 

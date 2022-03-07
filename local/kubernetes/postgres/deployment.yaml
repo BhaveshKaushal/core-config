@@ -1,4 +1,18 @@
 ---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: db-pv-volume
+  namespace: database
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/data/postgres"   
+---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -9,7 +23,7 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 4Gi
+      storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
