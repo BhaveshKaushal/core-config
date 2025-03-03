@@ -6,12 +6,11 @@
 APP 				?= bk-config
 .DEFAULT_GOAL 		=  info
 MAKEFILE_DIRECTORY 	:= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-IP					:= $(shell ip addr | grep 'inet ' | grep -v 127.0.0.1 | head -1 | cut -d' ' -f6 | cut -d'/' -f1)
 #=========================================================================================== 
 # Info on available targets
 #===========================================================================================
 
-info:
+help:
 	@echo "Available targets"
 	@echo "	install-kvm 			installs kvm"
 	@echo "	install-minikube 		installs minikube"
@@ -70,3 +69,43 @@ deploy-pv:
 
 deploy-postgres:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/postgres
+
+# Local targets specific to core-config
+
+local-build:
+	@echo "Building core-config locally"
+	@go build ./...
+
+local-test:
+	@echo "Testing core-config locally"
+	@go test ./... -v
+
+
+# Update init target in local makefile
+init:
+	@echo "Installing Minikube and Docker..."
+	@if ! command -v docker &> /dev/null; then \
+		brew install docker; \
+		echo "Docker installed successfully"; \
+	else \
+		echo "Docker is already installed"; \
+	fi
+	@if ! command -v minikube &> /dev/null; then \
+		brew install minikube; \
+		echo "Minikube installed successfully"; \
+	else \
+		echo "Minikube is already installed"; \
+	fi
+	@echo "Starting Minikube with Docker driver..."
+	@minikube start --driver=docker || true
+	@echo "Minikube is ready"
+	$(eval miniIP := $(shell minikube ip))
+
+# Add localstack as a separate target
+install-localstack:
+	@if ! command -v localstack &> /dev/null; then \
+		brew install localstack; \
+		echo "Localstack installed successfully"; \
+	else \
+		echo "Localstack is already installed"; \
+	fi
