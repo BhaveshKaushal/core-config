@@ -2,35 +2,52 @@
 #-------------------------------------------------------------------------------------------
 # VARIABLES
 #-------------------------------------------------------------------------------------------
-APP ?= bk-config
+APP ?= core-config
 .DEFAULT_GOAL = help
 TIMEOUT ?= 30
 DIR ?= ./...
-IP					:= $(shell ip addr | grep 'inet ' | grep -v 127.0.0.1 | head -1 | cut -d' ' -f6 | cut -d'/' -f1)
-miniIP              := $(shell minikube ip)
 POST_USER ?= postgres
+
+# Only set IP variables if minikube is installed and running
+IP := $(shell ifconfig | grep 'inet ' | grep -v '127.0.0.1' | head -n1 | awk '{print $$2}')
+miniIP := $(shell minikube status >/dev/null 2>&1 && minikube ip 2>/dev/null || echo "minikube not running")
+
+#-------------------------------------------------------------------------------------------
+# INCLUDE LOCAL MAKEFILE
+#-------------------------------------------------------------------------------------------
+ifneq (,$(wildcard ../local/makefile))
+include ../local/makefile
+endif
+
 #---------------------------------------------------------------------------------------
 # INFORMATION RELATED COMMANDS
 #---------------------------------------------------------------------------------------
 
-help:
-	@echo "Available targets"
-	@echo " info 			 	Information about the Application"
-	@echo " redis			 	Run redis client for redis deployed in minikube"
-	@echo " ddb-Admin		 	Run dynamodb for dynamodb deployed in minikube"
-	@echo " secrets-list			List available secrets in deployed secretsmanager"
-	@echo " clean				Remove out folder"
-	@echo " build			 	build go package"
-	@echo " build-exec		 	buiding an excutable"
-	@echo " test				Run tests"
-	@echo " test-cover		 	Run tests with coverage"
-	@echo " ports			 	List of deployed service in minikube"
+help::
+	@echo "Common targets:"
+	@echo " info                     Information about the Application"
+	@echo " redis                    Run redis client for redis deployed in minikube"
+	@echo " ddb-Admin                Run dynamodb for dynamodb deployed in minikube"
+	@echo " secrets-list             List available secrets in deployed secretsmanager"
+	@echo " clean                    Remove out folder"
+	@echo " build                    build go package"
+	@echo " build-exec               buiding an excutable"
+	@echo " test                     Run tests"
+	@echo " test-cover               Run tests with coverage"
+	@echo " ports                    List of deployed service in minikube"
+	@echo ""
+	@echo "Local targets:"
+	@if [ -f $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local/makefile ]; then \
+		$(MAKE) -C $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local help; \
+	fi
 
 
 info:
 	@echo "APP: $(APP)"
 	@echo "TIMEOUT: $(TIMEOUT)"
 	@echo "DIR: $(DIR)"
+	@echo "IP: $(IP)"
+	@echo "MINIKUBE IP: $(miniIP)"
 
 #---------------------------------------------------------------------------------------
 # REDIS
