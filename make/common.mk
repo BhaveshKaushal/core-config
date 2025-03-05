@@ -15,33 +15,32 @@ miniIP := $(shell minikube status >/dev/null 2>&1 && minikube ip 2>/dev/null || 
 #-------------------------------------------------------------------------------------------
 # INCLUDE LOCAL MAKEFILE
 #-------------------------------------------------------------------------------------------
-ifneq (,$(wildcard ../local/makefile))
-include ../local/makefile
+LOCAL_MAKEFILE := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local/makefile
+
+ifneq (,$(wildcard $(LOCAL_MAKEFILE)))
+include $(LOCAL_MAKEFILE)
 endif
 
 #---------------------------------------------------------------------------------------
 # INFORMATION RELATED COMMANDS
 #---------------------------------------------------------------------------------------
 
-help::
-	@echo "Common targets:"
-	@echo " info                     Information about the Application"
-	@echo " redis                    Run redis client for redis deployed in minikube"
-	@echo " ddb-Admin                Run dynamodb for dynamodb deployed in minikube"
-	@echo " secrets-list             List available secrets in deployed secretsmanager"
-	@echo " clean                    Remove out folder"
-	@echo " build                    build go package"
-	@echo " build-exec               buiding an excutable"
-	@echo " test                     Run tests"
-	@echo " test-cover               Run tests with coverage"
-	@echo " ports                    List of deployed service in minikube"
+help:
+	@echo "Available targets:"
 	@echo ""
-	@echo "Local targets:"
-	@if [ -f $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local/makefile ]; then \
-		$(MAKE) -C $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local help; \
+	@echo "Common targets:"
+	@awk '/^[a-zA-Z0-9_-]+:/ { \
+		if (match(lastLine, /^## (.*)/)) { \
+			printf "  %-20s %s\n", substr($$1, 1, length($$1)-1), substr(lastLine, 4); \
+		} \
+	} { lastLine = $$0 }' $(MAKEFILE_LIST)
+	@if [ -f $(LOCAL_MAKEFILE) ]; then \
+		echo ""; \
+		echo "Local targets:"; \
+		$(MAKE) -f $(LOCAL_MAKEFILE) local-help-silent; \
 	fi
 
-
+## Show information about the Application
 info:
 	@echo "APP: $(APP)"
 	@echo "TIMEOUT: $(TIMEOUT)"
@@ -112,7 +111,7 @@ clean:
 
 #build go package 
 build: info
-	@go build ./... 
+	@go build ./...
 
 #buiding an excutable
 build-exec: info
