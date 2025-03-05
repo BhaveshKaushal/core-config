@@ -15,15 +15,17 @@ miniIP := $(shell minikube status >/dev/null 2>&1 && minikube ip 2>/dev/null || 
 #-------------------------------------------------------------------------------------------
 # INCLUDE LOCAL MAKEFILE
 #-------------------------------------------------------------------------------------------
-ifneq (,$(wildcard ../local/makefile))
-include ../local/makefile
+LOCAL_MAKEFILE := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../local/makefile
+
+ifneq (,$(wildcard $(LOCAL_MAKEFILE)))
+include $(LOCAL_MAKEFILE)
 endif
 
 #---------------------------------------------------------------------------------------
 # INFORMATION RELATED COMMANDS
 #---------------------------------------------------------------------------------------
 
-help::
+help:
 	@echo "Common targets:"
 	@echo " info                     Information about the Application"
 	@echo " redis                    Run redis client for redis deployed in minikube"

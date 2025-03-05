@@ -1,4 +1,4 @@
-# All the targets have been tested on ubuntu system
+# All the targets have been tested on macOS system
 #=========================================================================================== 
 # VARIABLES
 #===========================================================================================
@@ -6,40 +6,55 @@
 APP 				?= bk-config
 .DEFAULT_GOAL 		=  info
 MAKEFILE_DIRECTORY 	:= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
 #=========================================================================================== 
 # Info on available targets
 #===========================================================================================
 
-help:
-	@echo "Available targets"
-	@echo "	install-kvm 			installs kvm"
+local-help:
+	@echo "Local targets:"
+	@echo "	install-docker 			installs docker desktop"
 	@echo "	install-minikube 		installs minikube"
 	@echo "	deploy-localstack		deploys localstack inside minikube"
 	@echo "	deploy-redis		  	deploys redis inside minikube"
+	@echo "	deploy-pv		  	deploys persistent volume"
+	@echo "	deploy-postgres		  	deploys postgres inside minikube"
+	@echo "	local-build		  	builds core-config locally"
+	@echo "	local-test		  	runs core-config tests"
+	@echo "	init		  		installs and configures minikube"
+	@echo "	install-localstack		installs localstack"
 
 #=========================================================================================== 
-#KVM and minikube
+# Docker and minikube
 #===========================================================================================
 
-# make sure vistualization is enabled, to enable virtualiztion go to BIOS --> System Configuration --> virtualization
-# Verify if virtualization is enabled by running "egrep -c '(vmx|svm)' /proc/cpuinfo", if value is other than 0 then it's enabled
-install-kvm:
-	sudo apt-get update -y
-	sudo apt install -y qemu qemu-kvm libvirt-daemon libvirt-clients bridge-utils virt-manager
-	cat /etc/group | grep libvirt | awk -F':' {'print $1'} | xargs -n1 sudo adduser $USER
-	sudo adduser $USER kvm
-	exec su -l $USER id | grep libvirt
+.PHONY: install-minikube install-docker init install-localstack
 
-# Make sure kvm is installed  or run install-kvm target
-# you might need to restart the system
+install-docker:
+	@if ! command -v docker &> /dev/null; then \
+		brew install --cask docker; \
+		echo "Docker Desktop installed successfully. Please start Docker Desktop application."; \
+	else \
+		echo "Docker Desktop is already installed"; \
+	fi
+
 install-minikube:
-	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && sudo mv kubectl /usr/bin/
-	curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-	sudo apt install libvirt-clients libvirt-daemon-system qemu-kvm
-	curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-kvm2 && sudo install docker-machine-driver-kvm2 /usr/local/bin/
+	@echo "Installing kubectl and minikube..."
+	@if ! command -v kubectl &> /dev/null; then \
+		brew install kubectl; \
+		echo "kubectl installed successfully"; \
+	else \
+		echo "kubectl is already installed"; \
+	fi
+	@if ! command -v minikube &> /dev/null; then \
+		brew install minikube; \
+		echo "minikube installed successfully"; \
+	else \
+		echo "minikube is already installed"; \
+	fi
 
 ip:
-	@echo $(IP)
+	@ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
 
 #===========================================================================================
 # Deploy: localstack
@@ -54,7 +69,6 @@ deploy-localstack:
 
 deploy-redis:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/redis
-
 
 #===========================================================================================
 # Deploy: persistent volume
@@ -72,23 +86,21 @@ deploy-postgres:
 
 # Local targets specific to core-config
 
-local-build:
-	@echo "Building core-config locally"
-	@go build ./...
+# local-build:
+# 	@echo "Building core-config locally"
+# 	@go build ./...
 
-local-test:
-	@echo "Testing core-config locally"
-	@go test ./... -v
+# local-test:
+# 	@echo "Testing core-config locally"
+# 	@go test ./... -v
 
-
-# Update init target in local makefile
 init:
 	@echo "Installing Minikube and Docker..."
 	@if ! command -v docker &> /dev/null; then \
-		brew install docker; \
-		echo "Docker installed successfully"; \
+		brew install --cask docker; \
+		echo "Docker Desktop installed successfully. Please start Docker Desktop application."; \
 	else \
-		echo "Docker is already installed"; \
+		echo "Docker Desktop is already installed"; \
 	fi
 	@if ! command -v minikube &> /dev/null; then \
 		brew install minikube; \
@@ -101,7 +113,6 @@ init:
 	@echo "Minikube is ready"
 	$(eval miniIP := $(shell minikube ip))
 
-# Add localstack as a separate target
 install-localstack:
 	@if ! command -v localstack &> /dev/null; then \
 		brew install localstack; \
