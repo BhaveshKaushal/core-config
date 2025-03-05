@@ -24,33 +24,35 @@ local-help:
 	@echo "	init		  		installs and configures minikube"
 	@echo "	install-localstack		installs localstack"
 
+local-help-silent:
+	@awk '/^[a-zA-Z0-9_-]+:/ { \
+		if (match(lastLine, /^## (.*)/)) { \
+			printf "  %-20s %s\n", substr($$1, 1, length($$1)-1), substr(lastLine, 4); \
+		} \
+	} { lastLine = $$0 }' $(MAKEFILE_LIST)
+
 #=========================================================================================== 
 # Docker and minikube
 #===========================================================================================
 
 .PHONY: install-minikube install-docker init install-localstack
 
+## Install Docker Desktop for macOS
 install-docker:
 	@if ! command -v docker &> /dev/null; then \
 		brew install --cask docker; \
-		echo "Docker Desktop installed successfully. Please start Docker Desktop application."; \
+		echo "Docker Desktop installed successfully"; \
 	else \
 		echo "Docker Desktop is already installed"; \
 	fi
 
+## Install Minikube and dependencies
 install-minikube:
-	@echo "Installing kubectl and minikube..."
 	@if ! command -v kubectl &> /dev/null; then \
 		brew install kubectl; \
-		echo "kubectl installed successfully"; \
-	else \
-		echo "kubectl is already installed"; \
 	fi
 	@if ! command -v minikube &> /dev/null; then \
 		brew install minikube; \
-		echo "minikube installed successfully"; \
-	else \
-		echo "minikube is already installed"; \
 	fi
 
 ip:
@@ -95,22 +97,49 @@ deploy-postgres:
 # 	@go test ./... -v
 
 init:
-	@echo "Installing Minikube and Docker..."
-	@if ! command -v docker &> /dev/null; then \
+	@echo "Checking prerequisites..."
+	@if [ ! -d "/Applications/Docker.app" ]; then \
+		echo "Docker Desktop is not installed. Installing..."; \
 		brew install --cask docker; \
-		echo "Docker Desktop installed successfully. Please start Docker Desktop application."; \
 	else \
-		echo "Docker Desktop is already installed"; \
+		echo "Docker Desktop is already installed."; \
 	fi
+	@echo "Starting Docker Desktop..."
+	@if ! docker info > /dev/null 2>&1; then \
+		if [ -d "/Applications/Docker.app" ]; then \
+			open /Applications/Docker.app; \
+			echo "Waiting for Docker to start..."; \
+			for i in {1..30}; do \
+				if docker info > /dev/null 2>&1; then \
+					echo "Docker is running!"; \
+					break; \
+				fi; \
+				echo "Still waiting... ($$i/30)"; \
+				sleep 2; \
+			done; \
+			if ! docker info > /dev/null 2>&1; then \
+				echo "Docker failed to start within 60 seconds"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "Error: Docker Desktop is not found in /Applications."; \
+			echo "Please ensure Docker Desktop is installed correctly."; \
+			exit 1; \
+		fi; \
+	fi
+	@echo "Docker is running, proceeding with Minikube..."
 	@if ! command -v minikube &> /dev/null; then \
 		brew install minikube; \
-		echo "Minikube installed successfully"; \
-	else \
-		echo "Minikube is already installed"; \
 	fi
-	@echo "Starting Minikube with Docker driver..."
-	@minikube start --driver=docker || true
-	@echo "Minikube is ready"
+	@echo "Starting Minikube..."
+	@minikube start --driver=docker \
+		--cpus=4 \
+		--memory=7168 \
+		--disk-size=20g || (echo "Error: Failed to start Minikube" && exit 1)
+	@echo "Enabling addons..."
+	@minikube addons enable ingress
+	@minikube addons enable metrics-server
+	@echo "Setup complete! Minikube is ready."
 	$(eval miniIP := $(shell minikube ip))
 
 install-localstack:
