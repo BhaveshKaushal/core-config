@@ -25,6 +25,7 @@ endif
 # INFORMATION RELATED COMMANDS
 #---------------------------------------------------------------------------------------
 
+## Display all available make targets with descriptions
 help:
 	@echo "Available targets:"
 	@echo ""
@@ -106,10 +107,11 @@ postgres:
 # Go repo specific target
 #---------------------------------------------------------------------------------------
 
+## Clean build artifacts and temporary files
 clean:
 	@rm -rf out
 
-#build go package 
+## Build the application
 build: info
 	@go build ./...
 
@@ -123,6 +125,7 @@ run:
 	@go run main.go
 
 
+## Run tests for the application
 test: info
 	@go test --timeout $(TIMEOUT)s $(DIR) -v
 
@@ -132,5 +135,40 @@ test-cover: info
 ports:
 	@minikube service list
 
-	
+## Display available make targets without formatting (for scripting)
+help-silent:
+	@awk '/^[a-zA-Z0-9_-]+:/ { \
+		if (match(lastLine, /^## (.*)/)) { \
+			printf "%s\n", substr($$1, 1, length($$1)-1); \
+		} \
+	} { lastLine = $$0 }' $(MAKEFILE_LIST)
+
+
+## Start the application in debug mode
+debug:
+	# ... existing code ...
+
+## Stop the running application and clean up resources
+stop:
+	@echo "Stopping application..."
+	@if [ -f .pid ]; then \
+		pid=$$(cat .pid); \
+		if ps -p $$pid > /dev/null; then \
+			kill $$pid; \
+			rm .pid; \
+			echo "Application stopped (PID: $$pid)"; \
+		else \
+			echo "No running application found with PID: $$pid"; \
+			rm .pid; \
+		fi \
+	else \
+		echo "No .pid file found. Application might not be running."; \
+	fi
+
+## Deploy application to target environment
+deploy:
+	# ... existing code ...
+
+
+
 

@@ -11,23 +11,24 @@ MAKEFILE_DIRECTORY 	:= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Info on available targets
 #===========================================================================================
 
+## Display local targets help
 local-help:
+	@echo "Available targets:\n"
 	@echo "Local targets:"
-	@echo "	install-docker 			installs docker desktop"
-	@echo "	install-minikube 		installs minikube"
-	@echo "	deploy-localstack		deploys localstack inside minikube"
-	@echo "	deploy-redis		  	deploys redis inside minikube"
-	@echo "	deploy-pv		  	deploys persistent volume"
-	@echo "	deploy-postgres		  	deploys postgres inside minikube"
-	@echo "	local-build		  	builds core-config locally"
-	@echo "	local-test		  	runs core-config tests"
-	@echo "	init		  		installs and configures minikube"
-	@echo "	install-localstack		installs localstack"
-
-local-help-silent:
-	@awk '/^[a-zA-Z0-9_-]+:/ { \
+	@awk -F':' '/^[a-zA-Z0-9_-]+:/ { \
 		if (match(lastLine, /^## (.*)/)) { \
-			printf "  %-20s %s\n", substr($$1, 1, length($$1)-1), substr(lastLine, 4); \
+			target = substr($$1, 1); \
+			desc = substr(lastLine, 4); \
+			printf "    %-20s %s\n", target, desc; \
+		} \
+	} { lastLine = $$0 }' $(MAKEFILE_LIST)
+
+## Display targets without formatting (for scripting)
+local-help-silent:
+	@awk -F':' '/^[a-zA-Z0-9_-]+:/ { \
+		if (match(lastLine, /^## (.*)/)) { \
+			target = substr($$1, 1); \
+			printf "    %s\n", target; \
 		} \
 	} { lastLine = $$0 }' $(MAKEFILE_LIST)
 
@@ -36,6 +37,10 @@ local-help-silent:
 #===========================================================================================
 
 .PHONY: install-minikube install-docker init install-localstack clean-localstack
+
+## Show information about the Application
+localinfo:
+	@echo "$$HELP_MESSAGE"
 
 ## Install Docker Desktop for macOS
 install-docker:
@@ -46,7 +51,7 @@ install-docker:
 		echo "Docker Desktop is already installed"; \
 	fi
 
-## Install Minikube and dependencies
+## Install Minikube and required dependencies
 install-minikube:
 	@if ! command -v kubectl &> /dev/null; then \
 		brew install kubectl; \
@@ -62,6 +67,7 @@ ip:
 # Deploy: localstack
 #===========================================================================================	
 
+## Deploy LocalStack services to Kubernetes cluster
 deploy-localstack:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
 
@@ -96,7 +102,8 @@ deploy-postgres:
 # 	@echo "Testing core-config locally"
 # 	@go test ./... -v
 
-init:
+## Initialize development environment with Docker and Minikube
+init: install-docker install-minikube
 	@echo "Checking prerequisites..."
 	@if [ ! -d "/Applications/Docker.app" ]; then \
 		echo "Docker Desktop is not installed. Installing..."; \
@@ -150,6 +157,7 @@ install-localstack:
 		echo "Localstack is already installed"; \
 	fi
 
+## Remove LocalStack deployment and clean up resources
 clean-localstack:
 	@echo "Cleaning up LocalStack..."
 	@kubectl delete -f kubernetes/localstack/deployment.yaml --ignore-not-found
