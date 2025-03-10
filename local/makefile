@@ -35,7 +35,7 @@ local-help-silent:
 # Docker and minikube
 #===========================================================================================
 
-.PHONY: install-minikube install-docker init install-localstack
+.PHONY: install-minikube install-docker init install-localstack clean-localstack
 
 ## Install Docker Desktop for macOS
 install-docker:
@@ -149,3 +149,8 @@ install-localstack:
 	else \
 		echo "Localstack is already installed"; \
 	fi
+
+clean-localstack:
+	@echo "Cleaning up LocalStack..."
+	@kubectl delete -f kubernetes/localstack/deployment.yaml --ignore-not-found
+	@echo "LocalStack cleanup complete"
