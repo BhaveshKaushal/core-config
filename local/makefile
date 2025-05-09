@@ -5,7 +5,9 @@
 
 APP 				?= bk-config
 .DEFAULT_GOAL 		=  info
-MAKEFILE_DIRECTORY 	:= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+LOCAL_MAKEFILE := $(lastword $(MAKEFILE_LIST))
+LOCAL_MAKEFILE_PATH := $(realpath $(LOCAL_MAKEFILE))
+MAKEFILE_DIRECTORY := $(dir $(LOCAL_MAKEFILE_PATH))
 
 #=========================================================================================== 
 # Info on available targets
@@ -60,6 +62,23 @@ install-minikube:
 		brew install minikube; \
 	fi
 
+## Start Minikube cluster with Docker driver
+start-minikube:
+	@if command -v minikube &> /dev/null; then \
+		echo "Starting Minikube with Docker driver..."; \
+		minikube start --driver=docker \
+			--cpus=4 \
+			--memory=7168 \
+			--disk-size=20g || (echo "Error: Failed to start Minikube" && exit 1); \
+		echo "Enabling addons..."; \
+		minikube addons enable ingress; \
+		minikube addons enable metrics-server; \
+		echo "Minikube is ready!"; \
+	else \
+		echo "Minikube is not installed. Please run 'make install-minikube' first."; \
+	fi
+
+## Display host machine IP address
 ip:
 	@ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
 
@@ -69,12 +88,15 @@ ip:
 
 ## Deploy LocalStack services to Kubernetes cluster
 deploy-localstack:
+	@echo "Deploying LocalStack..."
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
+	@echo "LocalStack deployment complete"
 
 #===========================================================================================
 # Deploy: redis
 #===========================================================================================	
 
+## Deploy Redis to Kubernetes cluster
 deploy-redis:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/redis
 
@@ -82,6 +104,7 @@ deploy-redis:
 # Deploy: persistent volume
 #===========================================================================================	
 
+## Deploy persistent volumes to Kubernetes cluster
 deploy-pv:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/pv
 
@@ -89,18 +112,10 @@ deploy-pv:
 # Deploy: postgres
 #===========================================================================================	
 
+## Deploy PostgreSQL to Kubernetes cluster
 deploy-postgres:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/postgres
 
-# Local targets specific to core-config
-
-# local-build:
-# 	@echo "Building core-config locally"
-# 	@go build ./...
-
-# local-test:
-# 	@echo "Testing core-config locally"
-# 	@go test ./... -v
 
 ## Initialize development environment with Docker and Minikube
 init: install-docker install-minikube
@@ -139,7 +154,7 @@ init: install-docker install-minikube
 		brew install minikube; \
 	fi
 	@echo "Starting Minikube..."
-	@minikube start --driver=docker \
+	@minikube start \
 		--cpus=4 \
 		--memory=7168 \
 		--disk-size=20g || (echo "Error: Failed to start Minikube" && exit 1)
@@ -149,16 +164,29 @@ init: install-docker install-minikube
 	@echo "Setup complete! Minikube is ready."
 	$(eval miniIP := $(shell minikube ip))
 
-install-localstack:
-	@if ! command -v localstack &> /dev/null; then \
-		brew install localstack; \
-		echo "Localstack installed successfully"; \
-	else \
-		echo "Localstack is already installed"; \
-	fi
 
 ## Remove LocalStack deployment and clean up resources
 clean-localstack:
 	@echo "Cleaning up LocalStack..."
-	@kubectl delete -f kubernetes/localstack/deployment.yaml --ignore-not-found
+	@kubectl delete -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
 	@echo "LocalStack cleanup complete"
+
+# You can verify the path with:
+debug-path:
+	@echo "Local Makefile: $(LOCAL_MAKEFILE)"
+	@echo "Full path: $(LOCAL_MAKEFILE_PATH)"
+	@echo "Directory: $(MAKEFILE_DIRECTORY)"
+
+## Get LocalStack URL and status
+localstack-status:
+	@echo "Checking LocalStack status..."
+	@echo "Pod status:"
+	@kubectl get pods -n localstack -l app=localstack
+	@echo "\nService status:"
+	@kubectl get svc localstack -n localstack
+	@echo "\nLocalStack URL:"
+	@echo "http://$(shell minikube ip):30100"
+	@echo "\nPod logs:"
+	@kubectl logs -l app=localstack -n localstack --tail=20
+
+

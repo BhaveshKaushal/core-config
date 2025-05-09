@@ -29,39 +29,34 @@ To remove LocalStack:
 make clean-localstack
 ```
 
-## Accessing Services
+## Accessing LocalStack
 
-LocalStack is accessible through NodePort 30100. All AWS services are available through the edge port.
+Since LocalStack is running inside Minikube, you need to use the Minikube IP to access it:
 
-Example endpoints:
-- Main endpoint: `http://localhost:30100`
-- Health check: `http://localhost:30100/_localstack/health`
+```bash
+# Get the Minikube IP
+minikube ip
+```
+
+Then access LocalStack at:
+- Main endpoint: `http://<minikube-ip>:30100`
+- Health check: `http://<minikube-ip>:30100/_localstack/health`
+
+Alternatively, you can get the URL directly using:
+```bash
+minikube service localstack --url
+```
 
 ## AWS CLI Configuration
 
-Configure AWS CLI to use LocalStack:
+Configure AWS CLI to use LocalStack (replace <minikube-ip> with actual IP):
 ```bash
 aws configure set aws_access_key_id test
 aws configure set aws_secret_access_key test
 aws configure set region us-east-1
-```
 
-Example commands:
-```bash
-# Create a DynamoDB table
-aws --endpoint-url=http://localhost:30100 dynamodb create-table \
-    --table-name TestTable \
-    --attribute-definitions AttributeName=id,AttributeType=S \
-    --key-schema AttributeName=id,KeyType=HASH \
-    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
-
-# List CloudFormation stacks
-aws --endpoint-url=http://localhost:30100 cloudformation list-stacks
-
-# Create a secret
-aws --endpoint-url=http://localhost:30100 secretsmanager create-secret \
-    --name test-secret \
-    --secret-string "my-secret-value"
+# Example command using Minikube IP
+aws --endpoint-url=http://<minikube-ip>:30100 s3 ls
 ```
 
 ## Available Services

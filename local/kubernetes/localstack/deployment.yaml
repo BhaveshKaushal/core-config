@@ -37,7 +37,9 @@ spec:
   ports:
     - name: edge
       port: 4566
+      targetPort: 4566
       nodePort: 30100
+      protocol: TCP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -60,13 +62,22 @@ spec:
           image: localstack/localstack:3.0
           ports:
             - containerPort: 4566
+              protocol: TCP
           env:
             - name: SERVICES
               value: "secretsmanager,cloudformation,dynamodb"
             - name: PERSISTENCE
               value: "1"
             - name: DEBUG
-              value: "0"
+              value: "1"
+            - name: ENABLE_CORS
+              value: "1"
+            - name: SSL_CERT_DIR
+              value: "/var/lib/localstack/certs"
+            - name: GATEWAY_LISTEN
+              value: "0.0.0.0:4566"
+            - name: HOSTNAME_EXTERNAL
+              value: "0.0.0.0"
           resources:
             requests:
               memory: "512Mi"
@@ -81,8 +92,7 @@ spec:
             httpGet:
               path: /_localstack/health
               port: 4566
-            initialDelaySeconds: 20
-            periodSeconds: 10
+              scheme: HTTPS
       volumes:
         - name: localstack-data
           persistentVolumeClaim:
