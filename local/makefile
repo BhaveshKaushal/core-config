@@ -190,3 +190,7 @@ localstack-status:
 	@kubectl logs -l app=localstack -n localstack --tail=20
 
 
+## Portforwarding for localstack
+localstack-portforward:
+	@kubectl port-forward svc/localstack 4566:4566 -n localstack
+
