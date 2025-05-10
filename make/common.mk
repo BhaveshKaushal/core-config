@@ -129,8 +129,9 @@ run:
 test: info
 	@go test --timeout $(TIMEOUT)s $(DIR) -v
 
-test-cover: info
+cover: info
 	@go test --timeout $(TIMEOUT)s --cover $(DIR) -v
+
 
 ports:
 	@minikube service list
@@ -168,6 +169,36 @@ stop:
 ## Deploy application to target environment
 deploy:
 	# ... existing code ...
+
+# Print repository root (for debugging)
+print-repo-root:
+	@echo "Repository root: $(REPO_ROOT)"
+	@echo "CONFIG_PATH: $(CONFIG_PATH)"
+	@echo "PARENT_DIR: $(PARENT_DIR)"
+	
+## Display detailed test coverage by function (use FILE=path/to/file.go to filter)
+cover-func: info
+	@go test --timeout $(TIMEOUT)s -coverprofile=coverage.out $(DIR)
+	@if [ -n "$(FILE)" ]; then \
+		echo "Coverage for $(FILE):"; \
+		go tool cover -func=coverage.out | grep "$(FILE)" || echo "No coverage data for $(FILE)"; \
+	else \
+		echo "Coverage by function:"; \
+		go tool cover -func=coverage.out; \
+	fi
+
+## Generate HTML coverage report (use FILE=path/to/file.go to filter)
+cover-html: info
+	@go test --timeout $(TIMEOUT)s -coverprofile=coverage.out $(DIR)
+	@if [ -n "$(FILE)" ]; then \
+		echo "Filtering coverage for $(FILE)"; \
+		echo "mode: set" > filtered.out; \
+		grep -o ".*$(FILE):.*" coverage.out >> filtered.out || echo "No coverage data for $(FILE)"; \
+		go tool cover -html=filtered.out -o coverage.html; \
+	else \
+		go tool cover -html=coverage.out -o coverage.html; \
+	fi
+	@echo "Coverage report generated: coverage.html"
 
 
 
