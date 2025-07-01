@@ -5,29 +5,32 @@
 
 APP 				?= bk-config
 .DEFAULT_GOAL 		=  info
-MAKEFILE_DIRECTORY 	:= $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+LOCAL_MAKEFILE := $(lastword $(MAKEFILE_LIST))
+LOCAL_MAKEFILE_PATH := $(realpath $(LOCAL_MAKEFILE))
+MAKEFILE_DIRECTORY := $(dir $(LOCAL_MAKEFILE_PATH))
 
 #=========================================================================================== 
 # Info on available targets
 #===========================================================================================
 
+## Display local targets help
 local-help:
+	@echo "Available targets:\n"
 	@echo "Local targets:"
-	@echo "	install-docker 			installs docker desktop"
-	@echo "	install-minikube 		installs minikube"
-	@echo "	deploy-localstack		deploys localstack inside minikube"
-	@echo "	deploy-redis		  	deploys redis inside minikube"
-	@echo "	deploy-pv		  	deploys persistent volume"
-	@echo "	deploy-postgres		  	deploys postgres inside minikube"
-	@echo "	local-build		  	builds core-config locally"
-	@echo "	local-test		  	runs core-config tests"
-	@echo "	init		  		installs and configures minikube"
-	@echo "	install-localstack		installs localstack"
-
-local-help-silent:
-	@awk '/^[a-zA-Z0-9_-]+:/ { \
+	@awk -F':' '/^[a-zA-Z0-9_-]+:/ { \
 		if (match(lastLine, /^## (.*)/)) { \
-			printf "  %-20s %s\n", substr($$1, 1, length($$1)-1), substr(lastLine, 4); \
+			target = substr($$1, 1); \
+			desc = substr(lastLine, 4); \
+			printf "    %-20s %s\n", target, desc; \
+		} \
+	} { lastLine = $$0 }' $(MAKEFILE_LIST)
+
+## Display targets without formatting (for scripting)
+local-help-silent:
+	@awk -F':' '/^[a-zA-Z0-9_-]+:/ { \
+		if (match(lastLine, /^## (.*)/)) { \
+			target = substr($$1, 1); \
+			printf "    %s\n", target; \
 		} \
 	} { lastLine = $$0 }' $(MAKEFILE_LIST)
 
@@ -35,7 +38,11 @@ local-help-silent:
 # Docker and minikube
 #===========================================================================================
 
-.PHONY: install-minikube install-docker init install-localstack
+.PHONY: install-minikube install-docker init install-localstack clean-localstack
+
+## Show information about the Application
+localinfo:
+	@echo "$$HELP_MESSAGE"
 
 ## Install Docker Desktop for macOS
 install-docker:
@@ -46,7 +53,7 @@ install-docker:
 		echo "Docker Desktop is already installed"; \
 	fi
 
-## Install Minikube and dependencies
+## Install Minikube and required dependencies
 install-minikube:
 	@if ! command -v kubectl &> /dev/null; then \
 		brew install kubectl; \
@@ -55,6 +62,23 @@ install-minikube:
 		brew install minikube; \
 	fi
 
+## Start Minikube cluster with Docker driver
+start-minikube:
+	@if command -v minikube &> /dev/null; then \
+		echo "Starting Minikube with Docker driver..."; \
+		minikube start --driver=docker \
+			--cpus=4 \
+			--memory=7168 \
+			--disk-size=20g || (echo "Error: Failed to start Minikube" && exit 1); \
+		echo "Enabling addons..."; \
+		minikube addons enable ingress; \
+		minikube addons enable metrics-server; \
+		echo "Minikube is ready!"; \
+	else \
+		echo "Minikube is not installed. Please run 'make install-minikube' first."; \
+	fi
+
+## Display host machine IP address
 ip:
 	@ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
 
@@ -62,13 +86,17 @@ ip:
 # Deploy: localstack
 #===========================================================================================	
 
+## Deploy LocalStack services to Kubernetes cluster
 deploy-localstack:
+	@echo "Deploying LocalStack..."
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
+	@echo "LocalStack deployment complete"
 
 #===========================================================================================
 # Deploy: redis
 #===========================================================================================	
 
+## Deploy Redis to Kubernetes cluster
 deploy-redis:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/redis
 
@@ -76,6 +104,7 @@ deploy-redis:
 # Deploy: persistent volume
 #===========================================================================================	
 
+## Deploy persistent volumes to Kubernetes cluster
 deploy-pv:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/pv
 
@@ -83,20 +112,13 @@ deploy-pv:
 # Deploy: postgres
 #===========================================================================================	
 
+## Deploy PostgreSQL to Kubernetes cluster
 deploy-postgres:
 	@kubectl apply -k $(MAKEFILE_DIRECTORY)kubernetes/postgres
 
-# Local targets specific to core-config
 
-# local-build:
-# 	@echo "Building core-config locally"
-# 	@go build ./...
-
-# local-test:
-# 	@echo "Testing core-config locally"
-# 	@go test ./... -v
-
-init:
+## Initialize development environment with Docker and Minikube
+init: install-docker install-minikube
 	@echo "Checking prerequisites..."
 	@if [ ! -d "/Applications/Docker.app" ]; then \
 		echo "Docker Desktop is not installed. Installing..."; \
@@ -132,7 +154,7 @@ init:
 		brew install minikube; \
 	fi
 	@echo "Starting Minikube..."
-	@minikube start --driver=docker \
+	@minikube start \
 		--cpus=4 \
 		--memory=7168 \
 		--disk-size=20g || (echo "Error: Failed to start Minikube" && exit 1)
@@ -142,10 +164,33 @@ init:
 	@echo "Setup complete! Minikube is ready."
 	$(eval miniIP := $(shell minikube ip))
 
-install-localstack:
-	@if ! command -v localstack &> /dev/null; then \
-		brew install localstack; \
-		echo "Localstack installed successfully"; \
-	else \
-		echo "Localstack is already installed"; \
-	fi
+
+## Remove LocalStack deployment and clean up resources
+clean-localstack:
+	@echo "Cleaning up LocalStack..."
+	@kubectl delete -k $(MAKEFILE_DIRECTORY)kubernetes/localstack
+	@echo "LocalStack cleanup complete"
+
+# You can verify the path with:
+debug-path:
+	@echo "Local Makefile: $(LOCAL_MAKEFILE)"
+	@echo "Full path: $(LOCAL_MAKEFILE_PATH)"
+	@echo "Directory: $(MAKEFILE_DIRECTORY)"
+
+## Get LocalStack URL and status
+localstack-status:
+	@echo "Checking LocalStack status..."
+	@echo "Pod status:"
+	@kubectl get pods -n localstack -l app=localstack
+	@echo "\nService status:"
+	@kubectl get svc localstack -n localstack
+	@echo "\nLocalStack URL:"
+	@echo "http://$(shell minikube ip):30100"
+	@echo "\nPod logs:"
+	@kubectl logs -l app=localstack -n localstack --tail=20
+
+
+## Portforwarding for localstack
+localstack-portforward:
+	@kubectl port-forward svc/localstack 4566:4566 -n localstack
+

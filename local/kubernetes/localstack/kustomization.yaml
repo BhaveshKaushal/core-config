@@ -3,12 +3,11 @@ kind: Kustomization
 
 namespace: localstack
 
-commonLabels:
-  domain: localstack
-  service: localstack
-  env: local
-
 resources:
   - namespace.yaml
   - deployment.yaml
+
+labels:
+  - pairs:
+      app: localstack
   
